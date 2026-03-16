@@ -1023,19 +1023,13 @@ fn test_device<Writer: std::io::Write>(
         .and_then(|s| s.parse::<i32>().ok())
         .unwrap_or_default();
     let iter_count = 100000000; //by default exit after several days of testing
-    let mut written_bytes = 0i64;
-    let mut read_bytes = 0i64;
-    let mut next_report_duration = time::Duration::from_secs(0);
-    let extended_test_report_duration = time::Duration::from_secs(30);
-    let mut reports_before_standard_done = 12i32;
-    let mut write_duration = time::Duration::ZERO;
+    let mut next_report_duration = time::Duration::from_secs(60);
     let mut buffer_in = IOBuf::for_initial_iteration();
     let first_iter_start = time::Instant::now();
     let mut last_status_output = first_iter_start;
-    let mut last_error_state = "          NO ERRORS       ".to_owned();
+    close::raise_status_bit(close::app_status::INITED_OK);
     for iteration in 1..=iter_count {
         unsafe { std::ptr::write(mapped, buffer_in) }
-        let write_start = time::Instant::now();
         for window_idx in 1..test_window_count {
             let test_offset = test_window_size * window_idx;
             unsafe {
@@ -1050,8 +1044,6 @@ fn test_device<Writer: std::io::Write>(
                 },
             )?;
         }
-        written_bytes += test_window_size * (test_window_count - 1);
-        write_duration += write_start.elapsed();
         let mut last_buffer_out: IOBuf;
         for window_idx in 0..test_window_count {
             let reread_mode_for_this_win = window_idx == 0;
@@ -1076,8 +1068,6 @@ fn test_device<Writer: std::io::Write>(
                 if let Some((error_range, total_errors)) =
                     last_buffer_out.get_error_addresses_and_count(test_offset)
                 {
-                    last_error_state =
-                        format!("LAST ERROR at {}", first_iter_start.elapsed().hhmmssxxx());
                     close::raise_status_bit(close::app_status::RUNTIME_ERRORS);
                     let test_elems = test_window_size / ELEMENT_SIZE;
                     write!(
@@ -1102,75 +1092,20 @@ fn test_device<Writer: std::io::Write>(
                 last_buffer_out.check_vec_first()?;
             }
         }
-        read_bytes += test_window_size * test_window_count;
         let moment_iter_ends = time::Instant::now();
         let elapsed = moment_iter_ends - last_status_output;
         let stop_testing = close::close_requested();
         if elapsed > next_report_duration || stop_testing {
-            let write_secs = write_duration.as_secs_f32();
-            let passed_secs = elapsed.as_secs_f32() - write_secs;
-            let write_speed_gbps = if write_secs > 0.0001 {
-                written_bytes as f32 / GB / write_secs
-            } else {
-                0f32
-            };
-            let check_speed_gbps = if passed_secs > 0.0001 {
-                read_bytes as f32 / GB / passed_secs
-            } else {
-                0f32
-            };
-            let second1 = time::Duration::from_secs(1);
-            if next_report_duration.is_zero() {
-                writeln!(log_dupler, "Standard 5-minute test of {}", selected_label)?;
-                next_report_duration = second1; //2nd report after 1 second
-            } else if next_report_duration == second1 {
-                close::raise_status_bit(close::app_status::INITED_OK);
-                next_report_duration = second1 * 5; //3rd report after 5 seconds
-            } else {
-                next_report_duration = extended_test_report_duration; //all later reports
-            }
-            if reports_before_standard_done == 0 {
-                let has_errors = close::check_any_bits_set(
-                    close::fetch_status(),
-                    close::app_status::RUNTIME_ERRORS,
-                );
-                match has_errors {
-                    true => writeln!(log_dupler, "Standard 5-minute test fail - ERRORS FOUND"),
-                    false => writeln!(
-                        log_dupler,
-                        "Standard 5-minute test PASSed! Just press Ctrl+C unless you plan long test run."
-                    ),
-                }?;
-                writeln!(
-                    log_dupler,
-                    "Extended endless test started; testing more than 2 hours is usually unneeded"
-                )?;
-                writeln!(
-                    log_dupler,
-                    "use Ctrl+C to stop it when you decide it's enough"
-                )?;
-            } else {
-                let formatted_time_hhmmss = (moment_iter_ends - first_iter_start).hhmmssxxx();
-                writeln!(
-                    log_dupler,
-                    "{}    written:{:7.1}GB{:7.1}GB/s      checked:{:7.1}GB{:7.1}GB/s     {}",
-                    last_error_state,
-                    written_bytes as f32 / GB,
-                    write_speed_gbps,
-                    read_bytes as f32 / GB,
-                    check_speed_gbps,
-                    formatted_time_hhmmss
-                )?;
-            }
-            reports_before_standard_done -= 1;
-            if reports_before_standard_done == 0 {
-                // The last iteration before report has a sleep before it to test hot gpu behaviour
-                // in a situation of load pause and low-performance memory frequency
-                std::thread::sleep(next_report_duration / 2);
-            }
-            written_bytes = 0i64;
-            read_bytes = 0i64;
-            write_duration = time::Duration::ZERO;
+            let total_secs = (moment_iter_ends - first_iter_start).as_secs();
+            let total_minutes = total_secs / 60;
+            let display_minutes = total_minutes.max(1);
+            writeln!(
+                log_dupler,
+                "Iteration passed. Total time: {} {}",
+                display_minutes,
+                if display_minutes == 1 { "minute" } else { "minutes" }
+            )?;
+            next_report_duration = time::Duration::from_secs(60);
             last_status_output = time::Instant::now();
         }
         if stop_testing {
