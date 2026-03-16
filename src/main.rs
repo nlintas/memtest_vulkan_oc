@@ -1103,7 +1103,11 @@ fn test_device<Writer: std::io::Write>(
                 log_dupler,
                 "Iteration passed. Total time: {} {}",
                 display_minutes,
-                if display_minutes == 1 { "minute" } else { "minutes" }
+                if display_minutes == 1 {
+                    "minute"
+                } else {
+                    "minutes"
+                }
             )?;
             next_report_duration = time::Duration::from_secs(60);
             last_status_output = time::Instant::now();
