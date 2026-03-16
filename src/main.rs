@@ -1891,7 +1891,9 @@ fn display_testing_outcome(test_status: TestStatus, env: &ProcessEnv) -> ! {
         key_reader.wait_any_key(true);
     }
     drop(key_reader); //restore terminal state before exiting
-    close::immediate_exit(false)
+    loop {
+        std::thread::sleep(time::Duration::from_secs(60));
+    }
 }
 
 fn display_result<Writer: std::io::Write>(
