@@ -700,6 +700,7 @@ fn prepare_and_test_device<Writer: std::io::Write>(
     display_this_process_result(None, env)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn test_device<Writer: std::io::Write>(
     device: &erupt::DeviceLoader,
     queue: vk::Queue,

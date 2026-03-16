@@ -1,8 +1,6 @@
 use mortal::Event;
 use mortal::terminal::Key;
 
-use std::io::Write;
-
 #[derive(Default)]
 pub struct Reader {
     pub current_input: String,
