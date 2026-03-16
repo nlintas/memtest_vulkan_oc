@@ -1027,6 +1027,7 @@ fn test_device<Writer: std::io::Write>(
     let first_iter_start = time::Instant::now();
     let mut last_status_output = first_iter_start;
     let mut total_written_bytes = 0i64;
+    let _ = writeln!(log_dupler, "Testing started...");
     close::raise_status_bit(close::app_status::INITED_OK);
     for iteration in 1..=iter_count {
         unsafe { std::ptr::write(mapped, buffer_in) }
@@ -1101,25 +1102,30 @@ fn test_device<Writer: std::io::Write>(
             let total_minutes = total_secs / 60;
             let display_minutes = total_minutes.max(1);
             let total_written_gb = total_written_bytes as f32 / GB;
+            let memory_str = if total_written_gb >= 1000.0 {
+                format!("{:.1} TB", total_written_gb / 1024.0)
+            } else {
+                format!("{} GB", total_written_gb.round() as u64)
+            };
             writeln!(
                 log_dupler,
-                "Iteration passed. Total time: {} {}. Total memory swapped: {:.1} GB",
+                "Iteration passed. Total time: {} {}. Total memory swapped: {}",
                 display_minutes,
                 if display_minutes == 1 {
                     "minute"
                 } else {
                     "minutes"
                 },
-                total_written_gb
+                memory_str
             )?;
-            if display_minutes >= 60 && (display_minutes - 60) % 60 < 1 {
+            if display_minutes == 60 {
                 writeln!(
                     log_dupler,
                     "Very Long Stability Achieved! It is largely unnecessary to continue testing at this point. Please interrupt and close the program."
                 )?;
-            } else if display_minutes >= 30 && (display_minutes - 30) % 60 < 1 {
+            } else if display_minutes == 30 {
                 writeln!(log_dupler, "Long Stability Achieved!")?;
-            } else if display_minutes >= 10 && (display_minutes - 10) % 60 < 1 {
+            } else if display_minutes == 10 {
                 writeln!(log_dupler, "Basic Stability Achieved!")?;
             }
             next_report_duration = time::Duration::from_secs(60);
@@ -1552,7 +1558,6 @@ fn test_in_this_process<Writer: std::io::Write>(
         display_this_process_result(Some("Failed determining memory budget".into()), env)
     }
 
-    let _ = writeln!(log_dupler, "Testing started...");
     prepare_and_test_device(instance, selected, env, log_dupler)
 }
 
