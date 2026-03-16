@@ -86,20 +86,6 @@ impl Reader {
     pub fn wait_any_key(&mut self, immediate_close_on_signal_during_wait: bool) {
         if crate::close::close_requested() {
             //interaction methods not available while closing on windows
-            let seconds_wait = 3;
-            let mut out = std::io::stdout();
-            if write!(out, "Closing in {seconds_wait} seconds: ").is_err() {
-                return;
-            }
-            for i in (1..=seconds_wait).rev() {
-                if write!(out, "{i}... ").is_err() {
-                    return;
-                }
-                if out.flush().is_err() {
-                    return;
-                }
-                std::thread::sleep(std::time::Duration::from_secs(1));
-            }
             println!();
             return;
         }
