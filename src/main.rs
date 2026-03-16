@@ -14,7 +14,6 @@ use erupt::{
     vk,
 };
 use erupt_vendored_utils_loading::{EntryLoader, new_loader};
-use hhmmss::Hhmmss;
 use std::{
     env,
     ffi::{CStr, OsString, c_void},
@@ -709,7 +708,7 @@ fn test_device<Writer: std::io::Write>(
     pipeline_layout: &vk::PipelineLayout,
     pipelines: &ComputePipelines,
     log_dupler: &mut output::LogDupler<Writer>,
-    selected_label: &String,
+    _selected_label: &str,
     memory_props: vk::PhysicalDeviceMemoryProperties,
     physical_props: vk::PhysicalDeviceProperties,
     env: &ProcessEnv,
