@@ -1029,7 +1029,7 @@ fn test_device<Writer: std::io::Write>(
     let mut total_written_bytes = 0i64;
     let _ = writeln!(log_dupler, "Testing started...");
     close::raise_status_bit(close::app_status::INITED_OK);
-    for iteration in 1..=iter_count {
+    'test_loop: for iteration in 1..=iter_count {
         unsafe { std::ptr::write(mapped, buffer_in) }
         for window_idx in 1..test_window_count {
             let test_offset = test_window_size * window_idx;
@@ -1090,6 +1090,11 @@ fn test_device<Writer: std::io::Write>(
                         "  iteration:{}\n{}",
                         last_buffer_out.iter, last_buffer_out
                     )?;
+                    writeln!(
+                        log_dupler,
+                        "Iteration failed. Errors in VRAM detected. Please adjust your overclock accordingly and re-test."
+                    )?;
+                    break 'test_loop;
                 }
                 last_buffer_out.check_vec_first()?;
             }
