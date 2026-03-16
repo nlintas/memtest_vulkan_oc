@@ -1113,7 +1113,10 @@ fn test_device<Writer: std::io::Write>(
                 total_written_gb
             )?;
             if display_minutes >= 60 && (display_minutes - 60) % 60 < 1 {
-                writeln!(log_dupler, "Very Long Stability Achieved! It is largely unnecessary to continue testing at this point. Please interrupt and close the program.")?;
+                writeln!(
+                    log_dupler,
+                    "Very Long Stability Achieved! It is largely unnecessary to continue testing at this point. Please interrupt and close the program."
+                )?;
             } else if display_minutes >= 30 && (display_minutes - 30) % 60 < 1 {
                 writeln!(log_dupler, "Long Stability Achieved!")?;
             } else if display_minutes >= 10 && (display_minutes - 10) % 60 < 1 {
